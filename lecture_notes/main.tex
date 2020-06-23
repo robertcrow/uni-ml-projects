@@ -478,8 +478,140 @@ x_{i} = \frac{x_i - \hat{x}}{\sigma}
 \item for binary classification, the final layers has a single node and a sigmoid activation funtion; output between 0 and 1 and can be interpreted as probability; handy derivative; analogous to logistic regression;
 \item for multiclass classification the final layer is a vector with the length equal to the number of classes, utilizes the \textit{softmax} sigmoid extension to multiclass problems: $softmax(z_{i} = \frac{e^{z}_{i}}{\sum_{k=1}^{K} e^{Z}_k})$. Categorical cross entropy is used as the loss function: $C.E. = - \sum_{i=1}^{n} y_{i} log(\hat{y_{i}})$
 
+\end{itemize}
 
+\subsection{Regularization techniques for deep learning}
+
+In order to regularize - prevent overfitting - the following measures can be taken:
+
+\begin{itemize}
+\item regularization penalty in the cost function - e.g. explicitly adding a penalty to the loss function for having high weights (similar to Ridge Regression):
+\begin{equation}
+J = \frac{1}{2n} \sum_{i=1}^{n} (\hat{y_i} - y_i)^2 + \lambda \sum_{j=1}^{m} W_i^2
+\end{equation}
+
+\item dropout - a technique where at each training iteration (batch) we randomly remove a subset of neurons; makes the network more robust because it doesn't rely on individual pathways; at test time, the weight is rescaled based on the time it was active;
+\item early stopping - choosing rules as to when the training is stopped, e.g. check log-loss function every 10 epochs to determine whether the model hasn't started to overfit;
+\item stochastic / mini batch GD also help to some degree
 
 \end{itemize}
+
+
+
+\subsection{Optimizers}
+
+Optimizers are tools for determining the update of weights. The standard formula $W :=  W - \alpha \nabla  J$ often provides unsatisfactory performance. Momentum optimizers smooths out the variation of standard updates, changing weights a little bit at every update. E.g. Nesterov momentum:
+
+\begin{equation}
+\nu_t = \eta \nu_{t-1} - \alpha \nabla (J - \eta \nu_{t-1})
+\end{equation}
+
+\begin{equation}
+W := W - \eta_t
+\end{equation}
+
+where $\eta$ is the momentum. The idea is that overshooting is controlled by looking "ahead". A different approach si the AdaGad optimizer. The idea is to scale the update separately for each weight. Sum of previous updates is kept and new updates are divided by factor of the previous sum.
+
+\begin{equation}
+W := W - \frac{\eta}{\sqrt{G_t} + \epsilon} \odot \nabla J
+\end{equation}
+
+A popular method nowadays is the RMSPROP which is similar to AdaGrad. However, rather than using the sum of previous gradients, older ones are decayed more than recent ones. Therefore, it is more adaptive to recent updates. Another popular method - ADAM - uses both 1st and 2nd order change information and decayover time.
+
+
+\section{Convolutional Neural Networks - CNNs}
+
+So far the structure of input data was not constrained - inputs were treated interchangeably. However, not all data-driven problems, are free of relationships between data points. Images are an example of such data - they are characterized by the following traits:
+
+\begin{enumerate}
+\item pixels have a topology
+\item lighting and contrast
+\item human visual system
+\item nearby pixels tend to have similar values - the role of gradients
+\item edges and shapes
+\item translation and scale invariance
+
+\end{enumerate}
+
+If images were treated in the same way as regular data, that is if each pixel had its own weights, the number of weights would be tremendous and so would be the variance. We have to introduce a bias to look for patterns. 
+
+\subsection{In a nutshell}
+
+\begin{itemize}
+\item built up from kernels - grids of weights overlaid on an image, centered on one pixel; used for traditional imahe processing techniques: bluring, sharpen, edhe detection, emboss;
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.75\linewidth]{kernel_example.PNG}
+    \caption{Kernel example}
+\end{figure}
+
+\end{itemize}
+
+The neural network learns which kernels are most useful, uses them over the entire image (translation invariance). Effectively, the number of parameters is reduced whereas variance is mitigated. The dimensions of a kernel are referred to as grid size, typically it is such that a central point can be distinguished. As a consequence of this kind of discretization of an image, the network suffers from an edge effect as a center pixel cannot be determined for corners. This issue is resolved by padding - adding 0 value (typically) pixels around the frame of the image.
+
+\subsection{Convolution settings}
+
+\begin{itemize}
+\item stride - the step size between neighbouring kernels, if greater than 1 than the output dimension is reduced;
+\item depth - number of kernels used for learning, often the number of channels describing a pixel, RGB -3, CMYK-4;
+\end{itemize}
+
+Beyond increasing the stride, another way of reducing the problem size is pooling - mapping a patch of pixels to a single value. There are several methods for choosing a numeric value to represent a patch - e.g. maximum value (max-pool), average of values (average-pool).
+
+\subsection{Convolution structure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=1\linewidth]{lenet.PNG}
+    \caption{Le-Net 5 CNN architecture}
+\end{figure}
+
+\begin{enumerate}
+\item input;
+\item convolutional layer, depth=6 (six different kernels used for learning), making the output $28x28x6$;
+\item pooling layer with stride 2;
+\item convolutional layer on downsized data, depth is increased to 16;
+\item another pooling layer;
+\item then the kernels are flattened to a vector whose size is reduced by a series of fully connected layers;
+\item softmax output with size equal to number of classes;
+\end{enumerate}
+
+\subsection{Training convolutional neural networks}
+
+\begin{enumerate}
+\item the first layers are the hardest (i.e. slowest) to train due to the vanishing gradient issue; at the same time, they are responsible for capturing primitive features which are quite general, not case specific;
+
+\item later layers capture features which are more specific to a particular classification problem, they are easier to train since adjusting their weights has a more immediate impact on the final result;
+
+\end{enumerate}
+
+
+
+\section{Transfer learning}
+
+There are several difficulties associated with training a model from scratch:
+\begin{itemize}
+\item  very large datasets;
+\item many training iterations;
+\item computational cost;
+\item time for hyper-parameter optimization.
+
+\end{itemize}
+
+However, general features captured by early layers should generalize and the weights can be easily stored. Transfer learning is employed by using the early layers of a pre-trained network, re-training the later layers for a specific application. Additional training of a pre-trained network on a new dataset is referred to as fine-tuning. 
+
+\subsection{Guidelines for fine-tuning}
+
+\begin{enumerate}
+\item The higher the similarity of the data and problem definition between the new case and the original one, the less fine-tuning is necessary. 
+
+\item The more data is available for the new problem, the more benefit is taken from longer and deeper fine-tuning.
+
+\item The new data cannot differ substantially in form with respect to the data that the model was trained on. 
+
+\end{enumerate}
+
+
 
 \end{document}
